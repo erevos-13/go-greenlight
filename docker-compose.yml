@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=postgres      # This creates the postgres user
+      - POSTGRES_PASSWORD=erev0s13!  # Set your password
+      - POSTGRES_DB=greenlight         # Your database name
+    ports:
+      - "5432:5432"
