@@ -24,6 +24,8 @@ type password struct {
 	hash      []byte
 }
 
+var AnonymousUser = &User{}
+
 type User struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -34,6 +36,9 @@ type User struct {
 	Version   int       `json:"-"` //json:"-" struct tag to prevent the Password and Version fields appearing
 }
 
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+}
 func (p *password) Set(plainTextPassword string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plainTextPassword), 12)
 	if err != nil {

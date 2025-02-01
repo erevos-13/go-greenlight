@@ -14,13 +14,14 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandle)
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.litMovies)
-	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/movies/:id", app.updateMovie)
-	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovie)
+	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requireActivatedUser(app.litMovies))
+	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requireActivatedUser(app.createMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requireActivatedUser(app.showMovieHandler))
+	router.HandlerFunc(http.MethodPut, "/v1/movies/:id", app.requireActivatedUser(app.updateMovie))
+	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requireActivatedUser(app.deleteMovie))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activate", app.activateUserHandler)
-	return app.recoverPanic(app.rateLimit(router))
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
