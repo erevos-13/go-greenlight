@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"log/slog"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -37,6 +39,9 @@ type config struct {
 		password string
 		sender   string
 	}
+	cors struct {
+		trustedOrigins []string
+	}
 }
 type application struct {
 	config *config
@@ -66,6 +71,10 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-username", "1fa43c4ceb1d98", "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "1eb316390153b5", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@test.com>", "SMTP sender")
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
+		cfg.cors.trustedOrigins = []string{val}
+		return nil
+	})
 
 	flag.Parse()
 
@@ -81,7 +90,22 @@ func main() {
 	}
 	defer db.Close()
 	logger.Info("database connection pool established")
+	expvar.NewString("version").Set(VERSION)
 
+	// Publish the number of active goroutines.
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
+	// Publish the database connection pool statistics.
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+
+	// Publish the current Unix timestamp.
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
 	app := &application{
 		logger: logger,
 		config: &cfg,
